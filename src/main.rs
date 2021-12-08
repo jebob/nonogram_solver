@@ -326,14 +326,21 @@ fn solve_inner(
     }
 
     // Check if fully solved, if so return.
+    if !known_state
+        .iter()
+        .any(|row| row.iter().any(|el| *el == Unknown))
+    {
+        return Ok(known_state);
+    }
 
-    // Not possible to deduce further
-    // Brute force
+    // Not possible to deduce further, need to use guessing algorithm below:
     // pick an unknown cell as white and solve_inner
     // if that works, return
     // if that doesn't work, try the alternative
     // if that works, return
     // if that doesn't work, abort
+
+    // However, I am lazy, so return an incomplete state
     Ok(known_state)
 }
 
@@ -348,7 +355,7 @@ fn solve(
 }
 
 fn prettify(state: &Vec<Vec<CellState>>) -> String {
-    fn disp(el: &CellState) -> &'static str {
+    fn get_char(el: &CellState) -> &'static str {
         match el {
             Black => "X",
             White => " ",
@@ -357,9 +364,9 @@ fn prettify(state: &Vec<Vec<CellState>>) -> String {
     }
     return state
         .iter()
-        .map(|row| row.iter().map(disp).collect::<String>())
+        .map(|row| row.iter().map(get_char).collect::<String>())
         .collect::<Vec<String>>()
-        .join("\r\n");
+        .join("\n");
 }
 
 fn main() {
