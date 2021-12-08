@@ -120,7 +120,7 @@ fn solve_group_(
             let reduced_state = &state[allocated..];
             let res = solve_group_(reduced_hint, reduced_state);
             if res.is_err() {
-                break;
+                continue;
             }
             let (remainder_white, remainder_black) = res.unwrap();
 
@@ -203,10 +203,6 @@ fn solve_group(hint: &[usize], state: &[CellState]) -> Result<Vec<CellState>, Ba
     new_state
 }
 
-fn group_is_solved(hint: Vec<usize>, state: Vec<CellState>) -> Result<bool, BadSolveError> {
-    Ok(true)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -272,25 +268,31 @@ mod tests {
 
     #[test]
     fn solve_group_two() {
-        assert!(
-            solve_group(&vec![1,1], &vec![Unknown, Unknown]).is_err()
-        );
+        assert!(solve_group(&vec![1, 1], &vec![Unknown, Unknown]).is_err());
         assert_eq!(
-            solve_group(&vec![1,1], &vec![Unknown, Unknown, Unknown]).unwrap(),
+            solve_group(&vec![1, 1], &vec![Unknown, Unknown, Unknown]).unwrap(),
             [Black, White, Black]
         );
         assert_eq!(
-            solve_group(&vec![1,1], &vec![Unknown, Unknown, Unknown, Unknown]).unwrap(),
+            solve_group(&vec![1, 1], &vec![Unknown, Unknown, Unknown, Unknown]).unwrap(),
             [Unknown, Unknown, Unknown, Unknown]
         );
         assert_eq!(
-            solve_group(&vec![1,1], &vec![Unknown, Unknown, Black, Unknown]).unwrap(),
+            solve_group(&vec![1, 1], &vec![Unknown, Unknown, Black, Unknown]).unwrap(),
             [Black, White, Black, White]
+        );
+        assert_eq!(
+            solve_group(&vec![1, 1], &vec![Unknown, Unknown, Black, Unknown, Black]).unwrap(),
+            [White, White, Black, White, Black]
         );
     }
 }
 
-fn solve_inner(rows: Vec<Vec<usize>>, cols: Vec<Vec<usize>>, mut known_state: Vec<Vec<CellState>>) -> Result<Vec<Vec<CellState>>, BadSolveError>{
+fn solve_inner(
+    rows: Vec<Vec<usize>>,
+    cols: Vec<Vec<usize>>,
+    mut known_state: Vec<Vec<CellState>>,
+) -> Result<Vec<Vec<CellState>>, BadSolveError> {
     // Deductive phase
     // While successfully solving
     // solve rows
@@ -335,29 +337,40 @@ fn solve_inner(rows: Vec<Vec<usize>>, cols: Vec<Vec<usize>>, mut known_state: Ve
     Ok(known_state)
 }
 
-fn solve(rows: Vec<Vec<usize>>, cols: Vec<Vec<usize>>) -> Result<Vec<Vec<CellState>>, BadSolveError>{
+fn solve(
+    rows: Vec<Vec<usize>>,
+    cols: Vec<Vec<usize>>,
+) -> Result<Vec<Vec<CellState>>, BadSolveError> {
     // Build initial state
     let state = vec![vec![CellState::Unknown; cols.len()]; rows.len()];
 
     solve_inner(rows, cols, state)
 }
 
-fn prettify(state: Vec<Vec<CellState>>) -> String {
-    fn disp(el: &CellState)->&'static str {
+fn prettify(state: &Vec<Vec<CellState>>) -> String {
+    fn disp(el: &CellState) -> &'static str {
         match el {
             Black => "X",
             White => " ",
-            Unknown => "?"
+            Unknown => "?",
         }
     }
-    return state.iter().map(|row| row.iter().map(disp).collect::<String>()).collect::<Vec<String>>().join("\r\n")
+    return state
+        .iter()
+        .map(|row| row.iter().map(disp).collect::<String>())
+        .collect::<Vec<String>>()
+        .join("\r\n");
 }
 
 fn main() {
-    let (rows, cols) = parse_file("Examples/Easy1.txt");
-    let result = solve(rows, cols).unwrap();
-    println!("{}", prettify(result));
-    let (rows, cols) = parse_file("Examples/Hard1.txt");
-    //let result = solve(rows, cols).unwrap();
-    //println!("{}", prettify(result));
+    for file in [
+        //"Examples/Easy1.txt",
+        //"Examples/Easy2.txt",
+        "Examples/Hard1.txt",
+    ] {
+        println!("Solving {}", file);
+        let (rows, cols) = parse_file(file);
+        let result = solve(rows, cols).unwrap();
+        println!("{}", prettify(&result));
+    }
 }
