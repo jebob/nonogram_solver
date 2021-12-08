@@ -33,7 +33,7 @@ fn parse_file(target: &str) -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
     // Part 1: columns
     // Each column is a collection of numbers, joined by newlines, joined by tabs
     let columns: Vec<Vec<usize>> = col_text
-        .split("\t")
+        .split('\t')
         .map(|col| {
             col.split_whitespace()
                 .map(|el| el.parse::<usize>().unwrap_or(0))
@@ -43,7 +43,7 @@ fn parse_file(target: &str) -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
     // Part 2: rows
     // Each row is a collection of numbers, joined by mixed whitespace, joined by \n+space
     let rows: Vec<Vec<usize>> = row_text
-        .split("\n")
+        .split('\n')
         .map(|col| {
             col.split_whitespace()
                 .map(|el| el.parse::<usize>().unwrap_or(0))
@@ -63,7 +63,7 @@ fn parse_file(target: &str) -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
         panic!("Bad parse in rows")
     }
 
-    return (rows, columns);
+    (rows, columns)
 }
 
 fn state_compatible(a: &[CellState], b: &[CellState]) -> bool {
@@ -85,7 +85,7 @@ fn solve_group_(
     // state (as given) is proven state
     // this function returns observed possibilities (whites, blacks)
 
-    if hint.len() == 0 {
+    if hint.is_empty() {
         // No Blacks, so must be all White
         return if state.iter().any(|el| *el == Black) {
             // But there's a Black!
@@ -109,7 +109,7 @@ fn solve_group_(
             break;
         }
         try_state.push(White); // Must be followed by White or end of group
-        if state_compatible(&state, &try_state) {
+        if state_compatible(state, &try_state) {
             // This block is ok, but what about the other blocks?
             let reduced_hint = &hint[1..];
             let mut allocated = offset + block_size;
@@ -159,7 +159,7 @@ fn solve_group(hint: &[usize], state: &[CellState]) -> Result<Vec<CellState>, Ba
     // idea: add some simple criteria to check solvability.
     // Perhaps the full algorithm obviously has no solutions
 
-    let (maybe_white, maybe_black) = solve_group_(&hint, &state)?;
+    let (maybe_white, maybe_black) = solve_group_(hint, state)?;
 
     // Construct new solved state
     fn combine(
@@ -354,7 +354,7 @@ fn solve(
     solve_inner(rows, cols, state)
 }
 
-fn prettify(state: &Vec<Vec<CellState>>) -> String {
+fn prettify(state: &[Vec<CellState>]) -> String {
     fn get_char(el: &CellState) -> &'static str {
         match el {
             Black => "X",
