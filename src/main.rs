@@ -7,7 +7,7 @@
 // Ideas for speeding up
 // Note that 99% of runtime is in solve_group_
 // I use two data structures, is this sensible?
-// * two arrays (black & white) of trues/falses to represent observed possibilities
+// * two arrays (black & white) of bools to represent observed possibilities
 // * an array of CellStates to represent deduced state
 // solve_group_ considers all possibilities. This is slow.
 // * Can I demonstrate unsolvability? e.g. hint (1), state [Unknown; 5]
@@ -55,19 +55,19 @@ fn parse_file(target: &str) -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
     };
     // Validation
     // Maybe these trigger if there is a clue of "0", but this is an odd clue
-    if columns.iter().any(|group| group.iter().any(|el| *el == 0)) {
+    if columns.iter().any(|line| line.iter().any(|el| *el == 0)) {
         panic!("Bad parse in columns\n{:?}\n{:?}", rows, columns)
     }
-    if rows.iter().any(|group| group.iter().any(|el| *el == 0)) {
+    if rows.iter().any(|line| line.iter().any(|el| *el == 0)) {
         panic!("Bad parse in rows\n{:?}\n{:?}", rows, columns)
     }
     if rows
         .iter()
-        .map(|group| group.iter().sum::<usize>())
+        .map(|line| line.iter().sum::<usize>())
         .sum::<usize>()
         != columns
             .iter()
-            .map(|group| group.iter().sum::<usize>())
+            .map(|line| line.iter().sum::<usize>())
             .sum::<usize>()
     {
         panic!("Rows and columns contain different total black cells.")
@@ -114,17 +114,17 @@ fn parse_file_webbpn(target: &str) -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
     let mut is_rows = false;
     let mut rows: Vec<Vec<usize>> = vec![];
     let mut columns: Vec<Vec<usize>> = vec![];
-    let mut group: Vec<usize> = vec![];
+    let mut line: Vec<usize> = vec![];
     for e in parser {
         match e {
             Ok(XmlEvent::StartElement { name, .. }) if name.to_string() == "line" => {
-                group = vec![];
+                line = vec![];
             }
             Ok(XmlEvent::EndElement { name }) if name.to_string() == "line" => {
                 if is_rows {
-                    rows.push(group.clone());
+                    rows.push(line.clone());
                 } else {
-                    columns.push(group.clone());
+                    columns.push(line.clone());
                 }
             }
             Ok(XmlEvent::StartElement {
@@ -137,7 +137,7 @@ fn parse_file_webbpn(target: &str) -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
                 }
             }
             Ok(XmlEvent::Characters(text)) => match text.parse() {
-                Ok(val) => group.push(val),
+                Ok(val) => line.push(val),
                 _ => {}
             },
             Err(e) => {
@@ -161,11 +161,11 @@ fn state_compatible(a: &[CellState], b: &[CellState]) -> bool {
     true
 }
 
-fn solve_group_(
+fn solve_line_(
     hint: &[usize],
     state: &[CellState],
 ) -> Result<(Vec<bool>, Vec<bool>), BadSolveError> {
-    // Try to solve this group, using the known state and the hint
+    // Try to solve this line, using the known state and the hint
     // state (as given) is proven state
     // this function returns observed possibilities (whites, blacks)
 
@@ -192,7 +192,7 @@ fn solve_group_(
             // too large offset
             break;
         }
-        try_state.push(White); // Must be followed by White or end of group
+        try_state.push(White); // Must be followed by White or the line's end
         if state_compatible(state, &try_state) {
             // This block is ok, but what about the other blocks?
             let reduced_hint = &hint[1..];
@@ -202,7 +202,7 @@ fn solve_group_(
                 allocated += 1;
             }
             let reduced_state = &state[allocated..];
-            let res = solve_group_(reduced_hint, reduced_state);
+            let res = solve_line_(reduced_hint, reduced_state);
             if res.is_err() {
                 continue;
             }
@@ -237,13 +237,13 @@ fn solve_group_(
     Ok((maybe_white, maybe_black))
 }
 
-fn solve_group(hint: &[usize], state: &[CellState]) -> Result<Vec<CellState>, BadSolveError> {
-    // Try to solve this group, using the known state and the hint
+fn solve_line(hint: &[usize], state: &[CellState]) -> Result<Vec<CellState>, BadSolveError> {
+    // Try to solve this line, using the known state and the hint
 
     // idea: add some simple criteria to check solvability.
     // Perhaps the full algorithm obviously has no solutions
 
-    let (maybe_white, maybe_black) = solve_group_(hint, state)?;
+    let (maybe_white, maybe_black) = solve_line_(hint, state)?;
 
     // Construct new solved state
     fn combine(
@@ -313,60 +313,60 @@ mod tests {
     }
 
     #[test]
-    fn solve_group_zero_hints() {
+    fn solve_line_zero_hints() {
         // Zero hints mean all White
-        assert_eq!(solve_group(&vec![], &vec![Unknown]).unwrap(), [White]);
+        assert_eq!(solve_line(&vec![], &vec![Unknown]).unwrap(), [White]);
         assert_eq!(
-            solve_group(&vec![], &vec![Unknown, White]).unwrap(),
+            solve_line(&vec![], &vec![Unknown, White]).unwrap(),
             [White, White]
         );
-        assert!(solve_group(&vec![], &vec![Unknown, Black]).is_err());
+        assert!(solve_line(&vec![], &vec![Unknown, Black]).is_err());
     }
 
     #[test]
-    fn solve_group_one() {
-        assert_eq!(solve_group(&vec![1], &vec![Unknown]).unwrap(), [Black]);
+    fn solve_line_one() {
+        assert_eq!(solve_line(&vec![1], &vec![Unknown]).unwrap(), [Black]);
         assert_eq!(
-            solve_group(&vec![2], &vec![Black, Black]).unwrap(),
+            solve_line(&vec![2], &vec![Black, Black]).unwrap(),
             [Black, Black]
         );
         assert_eq!(
-            solve_group(&vec![1], &vec![Unknown, Unknown, Unknown]).unwrap(),
+            solve_line(&vec![1], &vec![Unknown, Unknown, Unknown]).unwrap(),
             [Unknown, Unknown, Unknown]
         );
         assert_eq!(
-            solve_group(&vec![1], &vec![Unknown, Unknown]).unwrap(),
+            solve_line(&vec![1], &vec![Unknown, Unknown]).unwrap(),
             [Unknown, Unknown]
         );
         assert_eq!(
-            solve_group(&vec![2], &vec![Unknown, Unknown]).unwrap(),
+            solve_line(&vec![2], &vec![Unknown, Unknown]).unwrap(),
             [Black, Black]
         );
         assert_eq!(
-            solve_group(&vec![2], &vec![Unknown, Unknown, Unknown]).unwrap(),
+            solve_line(&vec![2], &vec![Unknown, Unknown, Unknown]).unwrap(),
             [Unknown, Black, Unknown]
         );
-        assert!(solve_group(&vec![2], &vec![Unknown, White, Unknown]).is_err());
-        assert!(solve_group(&vec![20], &vec![Unknown, Unknown]).is_err());
+        assert!(solve_line(&vec![2], &vec![Unknown, White, Unknown]).is_err());
+        assert!(solve_line(&vec![20], &vec![Unknown, Unknown]).is_err());
     }
 
     #[test]
-    fn solve_group_two() {
-        assert!(solve_group(&vec![1, 1], &vec![Unknown, Unknown]).is_err());
+    fn solve_line_two() {
+        assert!(solve_line(&vec![1, 1], &vec![Unknown, Unknown]).is_err());
         assert_eq!(
-            solve_group(&vec![1, 1], &vec![Unknown, Unknown, Unknown]).unwrap(),
+            solve_line(&vec![1, 1], &vec![Unknown, Unknown, Unknown]).unwrap(),
             [Black, White, Black]
         );
         assert_eq!(
-            solve_group(&vec![1, 1], &vec![Unknown, Unknown, Unknown, Unknown]).unwrap(),
+            solve_line(&vec![1, 1], &vec![Unknown, Unknown, Unknown, Unknown]).unwrap(),
             [Unknown, Unknown, Unknown, Unknown]
         );
         assert_eq!(
-            solve_group(&vec![1, 1], &vec![Unknown, Unknown, Black, Unknown]).unwrap(),
+            solve_line(&vec![1, 1], &vec![Unknown, Unknown, Black, Unknown]).unwrap(),
             [Black, White, Black, White]
         );
         assert_eq!(
-            solve_group(&vec![1, 1], &vec![Unknown, Unknown, Black, Unknown, Black]).unwrap(),
+            solve_line(&vec![1, 1], &vec![Unknown, Unknown, Black, Unknown, Black]).unwrap(),
             [White, White, Black, White, Black]
         );
     }
@@ -387,7 +387,7 @@ fn solve_inner(
         col_change = false;
         // solve each row
         for (hint, row_state) in rows.iter().zip(known_state.iter_mut()) {
-            let new = solve_group(hint, row_state)?;
+            let new = solve_line(hint, row_state)?;
             if new != *row_state {
                 row_change = true;
                 *row_state = new;
@@ -399,7 +399,7 @@ fn solve_inner(
             known_state = transpose(known_state);
             // solve each col
             for (hint, col_state) in cols.iter().zip(known_state.iter_mut()) {
-                let new = solve_group(hint, col_state)?;
+                let new = solve_line(hint, col_state)?;
                 if new != *col_state {
                     col_change = true;
                     *col_state = new;
@@ -441,9 +441,9 @@ fn solve(
 fn prettify(state: &[Vec<CellState>]) -> String {
     fn get_char(el: &CellState) -> &'static str {
         match el {
-            Black => "X",
-            White => " ",
-            Unknown => "?",
+            CellState::Black => "X",
+            CellState::White => " ",
+            CellState::Unknown => "?",
         }
     }
     return state
