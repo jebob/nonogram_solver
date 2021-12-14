@@ -458,7 +458,8 @@ fn main() {
         for file in [
             //"Examples/Easy1.txt",
             //"Examples/Easy2.txt",
-            "Examples/Medium1.txt",  // Medium 30x30
+            //"Examples/Medium1.txt",  // Medium 30x30
+            "Examples/Medium2.txt",  // Medium 30x30
             //"Examples/XMLpuz24361.cgi.xml",  // Hard: 30x30
             //"Examples/XMLpuz22949.cgi.xml",  // Hard: 40x40
             //"Examples/XMLpuz25820.cgi.xml",  // Mega hard: 75:71
