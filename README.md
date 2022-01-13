@@ -5,8 +5,8 @@ https://github.com/tsionyx/nonogrid is better if you have a real need to solve N
 
 
 ## Usage instructions
-To solve a puzzle from [Brainbashers](https://www.brainbashers.com/nonogrids.asp), copy/paste the grid into a text file
-To solve a puzzle from [webpbn](https://webpbn.com), go to https://webpbn.com/XMLpuz.cgi?id={puzzle_id} and save that xml as a file.
+* To solve a puzzle from [Brainbashers](https://www.brainbashers.com/nonogrids.asp), copy/paste the grid into a text file
+* To solve a puzzle from [webpbn](https://webpbn.com), go to https://webpbn.com/XMLpuz.cgi?id={puzzle_id} and save that xml as a file.
 
 Produces output like
 
